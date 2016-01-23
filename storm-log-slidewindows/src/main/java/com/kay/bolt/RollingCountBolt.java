@@ -2,6 +2,8 @@ package com.kay.bolt;
 
 import org.apache.log4j.Logger;
 
+import com.kay.util.TupleHelpers;
+
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseBasicBolt;
@@ -29,8 +31,13 @@ public class RollingCountBolt extends BaseBasicBolt {
 	    this.emitFrequencyInSeconds = emitFrequencyInSeconds;		
 	}
 
-	public void execute(Tuple arg0, BasicOutputCollector arg1) {
-		// TODO Auto-generated method stub
+	public void execute(Tuple input, BasicOutputCollector collector) {
+		if(TupleHelpers.isTickTuple(input)){
+			System.err.println("RollingCountBolt 定时");
+			LOG.debug("Received tick tuple, triggering emit of current window counts");
+		}else{
+			
+		}
 		
 	}
 

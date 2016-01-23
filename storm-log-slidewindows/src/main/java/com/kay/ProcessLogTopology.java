@@ -50,7 +50,7 @@ public class ProcessLogTopology {
 		spoutConfig.scheme = new SchemeAsMultiScheme(new MessageScheme());
 		builder.setSpout(spoutId, new KafkaSpout(spoutConfig));
 		builder.setBolt(spliterId, new SpliterBolt()).shuffleGrouping(spoutId);
-//		builder.setBolt(counterId, new RollingCountBolt(5,1)).fieldsGrouping(spliterId, new Fields("accessip_serverip"));
+		builder.setBolt(counterId, new RollingCountBolt(5,1)).fieldsGrouping(spliterId, new Fields("accessip_serverip"));
 //		builder.setBolt(writerId, new WriterBolt()).shuffleGrouping(counterId);		
 	}
 
@@ -61,6 +61,7 @@ public class ProcessLogTopology {
 	}
 	
 	public void runLocally() throws InterruptedException {
+		System.err.println("runLocally");
 		StormRunner.runTopologyLocally(builder.createTopology(), topologyName, topologyConfig, runtimeInSeconds);
 	}
 
