@@ -7,6 +7,10 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
+import com.storm.tools.NthLastModifiedTimeTracker;
+
+import com.storm.tools.SlidingWindowCounter;
+
 import com.storm.util.TupleHelpers;
 
 import backtype.storm.Config;
@@ -31,6 +35,12 @@ public class RollingCountBolt extends BaseBasicBolt {
 	private final int emitFrequencyInSeconds;
 	Map<String, Integer> countsMap = null;
 	private int num = 1;
+	private final SlidingWindowCounter<Object> counter;
+	  private NthLastModifiedTimeTracker lastModifiedTracker;
+	//默认 emit 1分钟 时间窗5分钟
+	private long beginTime = System.currentTimeMillis();
+	private long endTime = 0L;
+	private boolean firstTime = true;
 	
 	public RollingCountBolt() {
 		    this(DEFAULT_SLIDING_WINDOW_IN_SECONDS, DEFAULT_EMIT_FREQUENCY_IN_SECONDS);
@@ -38,8 +48,14 @@ public class RollingCountBolt extends BaseBasicBolt {
 	
 	public RollingCountBolt(int windowLengthInSeconds, int emitFrequencyInSeconds) {
 	    this.windowLengthInSeconds = windowLengthInSeconds;
-	    this.emitFrequencyInSeconds = emitFrequencyInSeconds;		    
+	    this.emitFrequencyInSeconds = emitFrequencyInSeconds;		
+	    counter = new SlidingWindowCounter<Object>(deriveNumWindowChunksFrom(this.windowLengthInSeconds,
+	            this.emitFrequencyInSeconds));
 	}
+	
+	private int deriveNumWindowChunksFrom(int windowLengthInSeconds, int windowUpdateFrequencyInSeconds) {
+	    return windowLengthInSeconds / windowUpdateFrequencyInSeconds;
+	  }
 
 	String date = "";
 	String time = "";
@@ -49,13 +65,29 @@ public class RollingCountBolt extends BaseBasicBolt {
 	@Override
 	public void prepare(Map stormConf, TopologyContext context) {		
 		countsMap = new HashMap<String, Integer>();//		
+		lastModifiedTracker = new NthLastModifiedTimeTracker(deriveNumWindowChunksFrom(this.windowLengthInSeconds,
+		        this.emitFrequencyInSeconds));
 	}
 	
 	public void execute(Tuple input, BasicOutputCollector collector) {
 		if(TupleHelpers.isTickTuple(input)){
-			System.err.println("RollingCountBolt 定时");
+			
+			endTime = System.currentTimeMillis();
+			long diffTime = endTime - beginTime;
+			System.err.println("RollingCountBolt 定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时: " + diffTime + " = " + diffTime/1000);
+			firstTime = true;
+			int actualWindowLengthInSeconds = lastModifiedTracker.secondsSinceOldestModification();
+		    lastModifiedTracker.markAsModified();
+		    System.err.println("RollingCountBolt 定时定时定时定时定时定时定时定时定时定时actualWindowLengthInSeconds: " + actualWindowLengthInSeconds);
+//			System.err.println("RollingCountBolt 定时");
 //			LOG.debug("Received tick tuple, triggering emit of current window counts");
+//			emitCurrentWindowCounts();
 		}else{
+			if(firstTime)
+			{
+				beginTime = System.currentTimeMillis();
+				firstTime = false;
+			}
 			System.err.println("RollingCountBolt start");
 			date = input.getStringByField("date");
 			time = input.getStringByField("time");
@@ -73,14 +105,24 @@ public class RollingCountBolt extends BaseBasicBolt {
 			}
 			count ++;
 			countsMap.put(accessip_serverip + "_" + date + " " + time, count);
-			System.err.println("countBolt [time " + System.currentTimeMillis() + "]: " + num++ + "--->" +accessip_serverip+"_"+date + " " + time + ", "+ servlet + "=" + count);
+			System.err.println("RollingcountBolt [time " + System.currentTimeMillis() + "]: " + num++ + "--->" +accessip_serverip+"_"+date + " " + time + ", "+ servlet + "=" + count);
 			collector.emit(new Values(accessip_serverip, date, time, servlet ,count));
 			System.err.println("RollingCountBolt end");
 		}
 	}
 		
-	
-	public void declareOutputFields(OutputFieldsDeclarer arg0) {
+	  private void emitCurrentWindowCounts() {
+//		    Map<Object, Long> counts = counter.getCountsThenAdvanceWindow();
+//		    int actualWindowLengthInSeconds = lastModifiedTracker.secondsSinceOldestModification();
+//		    lastModifiedTracker.markAsModified();
+//		    if (actualWindowLengthInSeconds != windowLengthInSeconds) {
+//		      LOG.warn(String.format(WINDOW_LENGTH_WARNING_TEMPLATE, actualWindowLengthInSeconds, windowLengthInSeconds));
+//		    }
+//		    emit(counts, actualWindowLengthInSeconds);
+//		    emit(counts);
+	  }
+	  
+	public void declareOutputFields(OutputFieldsDeclarer declarer) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -88,7 +130,7 @@ public class RollingCountBolt extends BaseBasicBolt {
 	@Override
 	public Map<String, Object> getComponentConfiguration() {
 	   Map<String, Object> conf = new HashMap<String, Object>();
-	   conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, 5);
+	   conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, emitFrequencyInSeconds);
 	   return conf;
 	}
 }

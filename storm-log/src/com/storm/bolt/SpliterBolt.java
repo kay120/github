@@ -30,12 +30,24 @@ public class SpliterBolt extends BaseBasicBolt {
 	String p1 ="/servlet/com.icbc.inbs.servlet.ICBCINBSEstablishSessionServlet";
 	
 	String p2 = "/servlet/AsynGetDataServlet";
-	
+	private long beginTime = System.currentTimeMillis();
+	private long endTime = 0L;
+	private boolean firstTime = true;
 	public void execute(Tuple input, BasicOutputCollector collector) {
+		// split 不定时
 		if(TupleHelpers.isTickTuple(input)){
-			System.err.println("SpliterBolt 定时");
+			
+			endTime = System.currentTimeMillis();
+			long diffTime = endTime - beginTime;
+			System.err.println("SpliterBolt 定时: " + diffTime + " = " + diffTime/1000);
+			firstTime = true;
 //			LOG.debug("Received tick tuple, triggering emit of current window counts");
 		}else{
+			if(firstTime)
+			{
+				beginTime = System.currentTimeMillis();
+				firstTime = false;
+			}
 			System.err.println("SpliterBolt start");
 			String line = input.getStringByField("msg");
 //			System.err.println("SpliterBolt [" + System.currentTimeMillis() + "] line:" + line );
@@ -60,6 +72,7 @@ public class SpliterBolt extends BaseBasicBolt {
 				System.err.println("splitBolt [time " + + System.currentTimeMillis() + "]: " + num++ + "--->" +accessip + "_" + serverip+"_"+date + " " + time + ", "+ servlet );
 			}	
 			System.err.println("SpliterBolt end");
+			
 		}
 	}
 
@@ -67,11 +80,11 @@ public class SpliterBolt extends BaseBasicBolt {
 		declarer.declare(new Fields("date","time","accessip_serverip","servlet"));		
 	}
 
-	@Override
-	public Map<String, Object> getComponentConfiguration() {
-	   Map<String, Object> conf = new HashMap<String, Object>();
-	   conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, 5);
-	   return conf;
-	}
+//	@Override
+//	public Map<String, Object> getComponentConfiguration() {
+//	   Map<String, Object> conf = new HashMap<String, Object>();
+//	   conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, 20);
+//	   return conf;
+//	}
 
 }

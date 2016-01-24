@@ -15,6 +15,7 @@ import com.storm.ProcessLogTopology;
 import com.storm.bolt.RollingCountBolt;
 import com.storm.bolt.SpliterBolt;
 import com.storm.spout.MessageScheme;
+import com.storm.spout.MySout;
 import com.storm.util.StormRunner;
 
 public class ProcessLogTopology {
@@ -47,9 +48,11 @@ public class ProcessLogTopology {
 		SpoutConfig spoutConfig = new SpoutConfig(brokerHosts, topic , zkRoot, spoutId);
 		spoutConfig.forceFromStart = true;
 		spoutConfig.scheme = new SchemeAsMultiScheme(new MessageScheme());
-		builder.setSpout(spoutId, new KafkaSpout(spoutConfig));
-		builder.setBolt(spliterId, new SpliterBolt(),3).shuffleGrouping(spoutId);
-		builder.setBolt(counterId, new RollingCountBolt(5,1)).fieldsGrouping(spliterId, new Fields("accessip_serverip"));
+//		builder.setSpout(spoutId, new KafkaSpout(spoutConfig));
+		builder.setSpout(spoutId, new MySout());
+		builder.setBolt(spliterId, new SpliterBolt(),1).shuffleGrouping(spoutId);
+		// 时间窗为2分钟， 半分钟发一次
+		builder.setBolt(counterId, new RollingCountBolt(120,5)).fieldsGrouping(spliterId, new Fields("accessip_serverip"));
 //		builder.setBolt(writerId, new WriterBolt()).shuffleGrouping(counterId);		
 	}
 
