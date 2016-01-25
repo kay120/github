@@ -11,6 +11,7 @@ import com.storm.tools.NthLastModifiedTimeTracker;
 
 import com.storm.tools.SlidingWindowCounter;
 
+import com.storm.util.LogValue;
 import com.storm.util.TupleHelpers;
 
 import backtype.storm.Config;
@@ -35,7 +36,7 @@ public class RollingCountBolt extends BaseBasicBolt {
 	private final int emitFrequencyInSeconds;
 	Map<String, Integer> countsMap = null;
 	private int num = 1;
-	private final SlidingWindowCounter<Object> counter;
+	private final SlidingWindowCounter ipListMap;
 	  private NthLastModifiedTimeTracker lastModifiedTracker;
 	//默认 emit 1分钟 时间窗5分钟
 	private long beginTime = System.currentTimeMillis();
@@ -49,7 +50,7 @@ public class RollingCountBolt extends BaseBasicBolt {
 	public RollingCountBolt(int windowLengthInSeconds, int emitFrequencyInSeconds) {
 	    this.windowLengthInSeconds = windowLengthInSeconds;
 	    this.emitFrequencyInSeconds = emitFrequencyInSeconds;		
-	    counter = new SlidingWindowCounter<Object>(deriveNumWindowChunksFrom(this.windowLengthInSeconds,
+	    ipListMap = new SlidingWindowCounter(deriveNumWindowChunksFrom(this.windowLengthInSeconds,
 	            this.emitFrequencyInSeconds));
 	}
 	
@@ -81,7 +82,7 @@ public class RollingCountBolt extends BaseBasicBolt {
 		    System.err.println("RollingCountBolt 定时定时定时定时定时定时定时定时定时定时actualWindowLengthInSeconds: " + actualWindowLengthInSeconds);
 //			System.err.println("RollingCountBolt 定时");
 //			LOG.debug("Received tick tuple, triggering emit of current window counts");
-//			emitCurrentWindowCounts();
+			emitCurrentWindowCounts();
 		}else{
 			if(firstTime)
 			{
@@ -106,13 +107,20 @@ public class RollingCountBolt extends BaseBasicBolt {
 			count ++;
 			countsMap.put(accessip_serverip + "_" + date + " " + time, count);
 			System.err.println("RollingcountBolt [time " + System.currentTimeMillis() + "]: " + num++ + "--->" +accessip_serverip+"_"+date + " " + time + ", "+ servlet + "=" + count);
-			collector.emit(new Values(accessip_serverip, date, time, servlet ,count));
+			LogValue logValue = new LogValue();
+			logValue.setTime(time);
+			logValue.setServlet(servlet);
+			ipListMap.incrementCount(accessip_serverip, logValue);
+//			collector.emit(new Values(accessip_serverip, date, time, servlet ,count));
 			System.err.println("RollingCountBolt end");
 		}
 	}
 		
 	  private void emitCurrentWindowCounts() {
-//		    Map<Object, Long> counts = counter.getCountsThenAdvanceWindow();
+		  ipListMap.printlnListIPMapListValue();
+		  ipListMap.getCountsThenAdvanceWindow();
+		  
+		  
 //		    int actualWindowLengthInSeconds = lastModifiedTracker.secondsSinceOldestModification();
 //		    lastModifiedTracker.markAsModified();
 //		    if (actualWindowLengthInSeconds != windowLengthInSeconds) {

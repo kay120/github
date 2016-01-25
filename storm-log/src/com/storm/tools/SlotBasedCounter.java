@@ -18,10 +18,13 @@
 package com.storm.tools;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import com.storm.util.LogValue;
 
 /**
  * This class provides per-slot counts of the occurrences of objects.
@@ -30,11 +33,11 @@ import java.util.Set;
  *
  * @param <T> The type of those objects we want to count.
  */
-public final class SlotBasedCounter<T> implements Serializable {
+public final class SlotBasedCounter implements Serializable {
 
-  private static final long serialVersionUID = 4858185737378394432L;
+  private static final long serialVersionUID = 1;
 
-  private final Map<T, long[]> objToCounts = new HashMap<T, long[]>();
+  private final List<HashMap<String, List<LogValue>>> listMapLogValue;
   private final int numSlots;
 
   public SlotBasedCounter(int numSlots) {
@@ -42,80 +45,120 @@ public final class SlotBasedCounter<T> implements Serializable {
       throw new IllegalArgumentException("Number of slots must be greater than zero (you requested " + numSlots + ")");
     }
     this.numSlots = numSlots;
+    listMapLogValue = new ArrayList<HashMap<String,List<LogValue>>>(this.numSlots);
   }
 
-  //  为某项的第slot个时隙加1
-  public void incrementCount(T obj, int slot) {
-    long[] counts = objToCounts.get(obj);
-    if (counts == null) {
-      counts = new long[this.numSlots];
-      objToCounts.put(obj, counts);
+  //  为某项的第slot个时隙添加 IP的LogValue
+  //  当 list size() >= numSlots 需要remove 0
+  public void incrementLogValue(String strIP, int curSlot,LogValue logValue) {	
+	//如果listMapLogValue[curSlot] 没有map
+	HashMap<String,List<LogValue>> ipMap;
+	// listMapLogValue[curSlot]没有map时
+	if(listMapLogValue.size() <= curSlot){
+		ipMap = new HashMap<String,List<LogValue>>();
+		listMapLogValue.add(ipMap);
+	}else{
+		ipMap = listMapLogValue.get(curSlot);
+	}
+		
+	if(ipMap == null)
+    {
+    	ipMap = new HashMap<String,List<LogValue>>();
     }
-    counts[slot]++;
-  }
+    List<LogValue> ipValue = ipMap.get(strIP);
+    if(ipValue == null){
+    	ipValue = new ArrayList<LogValue>();
+    }
+    ipValue.add(logValue);
+    ipMap.put(strIP, ipValue);
+    System.err.println("listMapLogValue.size() :" + listMapLogValue.size()+ " curSlot :" + curSlot );
+    listMapLogValue.set(curSlot, ipMap);
+    System.err.println("listMapLogValue.size() :" + listMapLogValue.size()+ " curSlot :" + curSlot );
+  } 
 
-  // 获取某项在某个slot的值
-  public long getCount(T obj, int slot) {
-    long[] counts = objToCounts.get(obj);
-    if (counts == null) {
-      return 0;
-    }
-    else {
-      return counts[slot];
-    }
+  public void printListMapListLogValue()
+  {
+	  System.err.println("输出ListMapIPListLogValue============================"+ listMapLogValue.size() + " numSlot:" + this.numSlots);
+	  for(int i=0; i < listMapLogValue.size(); i++){
+		  System.err.println("Slot num : " + i);
+		  HashMap<String,List<LogValue>> ipMap = listMapLogValue.get(i);
+		  for(String key : ipMap.keySet()){
+			  System.err.println("===>IP: " + key);
+			  List<LogValue> ipValue = ipMap.get(key);
+			  for(int j =0 ;j < ipValue.size() ; j++){
+				  System.err.println("=========>ipValue.size():"+ ipValue.size() + " " + ipValue.get(j).getTime() + " " + ipValue.get(j).getServlet());
+			  }
+		  }
+	  }
+	  System.err.println("print over=========================================");
   }
+  public void PopList(){
+	  if(listMapLogValue.size() >= this.numSlots){
+		  listMapLogValue.remove(0);
+	  }
+  }
+  // 获取某项在某个slot的IP  Map
+//  public long getCount(T obj, int slot) {
+//    long[] counts = objToCounts.get(obj);
+//    if (counts == null) {
+//      return 0;
+//    }
+//    else {
+//      return counts[slot];
+//    }
+//  }
 
   // 获取所有项在所有slot值的和
-  public Map<T, Long> getCounts() {
-    Map<T, Long> result = new HashMap<T, Long>();
-    for (T obj : objToCounts.keySet()) {
-      result.put(obj, computeTotalCount(obj));
-    }
-    return result;
-  }
+//  public Map<T, Long> getCounts() {
+//    Map<T, Long> result = new HashMap<T, Long>();
+//    for (T obj : objToCounts.keySet()) {
+//      result.put(obj, computeTotalCount(obj));
+//    }
+//    return result;
+//  }
 
-  private long computeTotalCount(T obj) {
-    long[] curr = objToCounts.get(obj);
-    long total = 0;
-    for (long l : curr) {
-      total += l;
-    }
-    return total;
-  }
+//  private long computeTotalCount(T obj) {
+//    long[] curr = objToCounts.get(obj);
+//    long total = 0;
+//    for (long l : curr) {
+//      total += l;
+//    }
+//    return total;
+//  }
 
   /**
    * Reset the slot count of any tracked objects to zero for the given slot.
    * // 把所有项的第slot个时隙置0
    * @param slot
    */
-  public void wipeSlot(int slot) {
-    for (T obj : objToCounts.keySet()) {
-      resetSlotCountToZero(obj, slot);
-    }
-  }
+//  public void wipeSlot(int slot) {
+//    for (T obj : objToCounts.keySet()) {
+//      resetSlotCountToZero(obj, slot);
+//    }
+//  }
 
-  private void resetSlotCountToZero(T obj, int slot) {
-    long[] counts = objToCounts.get(obj);
-    counts[slot] = 0;
-  }
+//  private void resetSlotCountToZero(T obj, int slot) {
+//    long[] counts = objToCounts.get(obj);
+//    counts[slot] = 0;
+//  }
 
-  private boolean shouldBeRemovedFromCounter(T obj) {
-    return computeTotalCount(obj) == 0;
-  }
+//  private boolean shouldBeRemovedFromCounter(T obj) {
+//    return computeTotalCount(obj) == 0;
+//  }
 
   /**
    * Remove any object from the counter whose total count is zero (to free up memory).
    */ // 把totalCount为0的项删掉
-  public void wipeZeros() {
-    Set<T> objToBeRemoved = new HashSet<T>();
-    for (T obj : objToCounts.keySet()) {
-      if (shouldBeRemovedFromCounter(obj)) {
-        objToBeRemoved.add(obj);
-      }
-    }
-    for (T obj : objToBeRemoved) {
-      objToCounts.remove(obj);
-    }
-  }
+//  public void wipeZeros() {
+//    Set<T> objToBeRemoved = new HashSet<T>();
+//    for (T obj : objToCounts.keySet()) {
+//      if (shouldBeRemovedFromCounter(obj)) {
+//        objToBeRemoved.add(obj);
+//      }
+//    }
+//    for (T obj : objToBeRemoved) {
+//      objToCounts.remove(obj);
+//    }
+//  }
 
 }

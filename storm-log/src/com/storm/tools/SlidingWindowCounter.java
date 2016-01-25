@@ -20,6 +20,8 @@ package com.storm.tools;
 import java.io.Serializable;
 import java.util.Map;
 
+import com.storm.util.LogValue;
+
 /**
  * This class counts objects in a sliding window fashion.
  * <p/>
@@ -65,11 +67,11 @@ import java.util.Map;
  *
  * @param <T> The type of those objects we want to count.
  */
-public final class SlidingWindowCounter<T> implements Serializable {
+public final class SlidingWindowCounter implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  private SlotBasedCounter<T> objCounter;
+  private SlotBasedCounter objCounter;
   private int headSlot;
   private int tailSlot;
   private int windowLengthInSlots;
@@ -80,14 +82,14 @@ public final class SlidingWindowCounter<T> implements Serializable {
           "Window length in slots must be at least two (you requested " + windowLengthInSlots + ")");
     }
     this.windowLengthInSlots = windowLengthInSlots;
-    this.objCounter = new SlotBasedCounter<T>(this.windowLengthInSlots);
+    this.objCounter = new SlotBasedCounter(this.windowLengthInSlots);
 
     this.headSlot = 0;
     this.tailSlot = slotAfter(headSlot);
   }
 
-  public void incrementCount(T obj) {
-    objCounter.incrementCount(obj, headSlot);
+  public void incrementCount(String strIp, LogValue logValue) {
+    objCounter.incrementLogValue(strIp ,headSlot, logValue);
   }
 
   /**
@@ -99,17 +101,31 @@ public final class SlidingWindowCounter<T> implements Serializable {
    *
    * @return The current (total) counts of all tracked objects.
    */
-  public Map<T, Long> getCountsThenAdvanceWindow() {
-    Map<T, Long> counts = objCounter.getCounts();// 获取所有key在各个slot的总数
-    objCounter.wipeZeros();// 删掉统计数为0的项
-    objCounter.wipeSlot(tailSlot);// 把tail指向的slot清0
+  // 定时器到后 数组 headSlot 向前移动
+  public void getCountsThenAdvanceWindow() {
+//    Map<T, Long> counts = objCounter.getCounts();// 获取所有key在各个slot的总数
+//    objCounter.wipeZeros();// 删掉统计数为0的项
+//    objCounter.wipeSlot(tailSlot);// 把tail指向的slot清0
     advanceHead();// head和tail后移
-    return counts;// return 一开始获取的slot总数    
+//    return counts;// return 一开始获取的slot总数    
+    //当 list 满时 清楚 0
+    objCounter.PopList();
   }
 
+  public void printlnListIPMapListValue(){
+	  objCounter.printListMapListLogValue();
+  }
   private void advanceHead() {
-    headSlot = tailSlot;
-    tailSlot = slotAfter(tailSlot);
+//    headSlot = tailSlot;
+//    tailSlot = slotAfter(tailSlot);
+	//如果list 没满 headSlot ++ 否则指向最后一个
+    if(headSlot < windowLengthInSlots - 1)
+    {
+    	headSlot++;
+    }else
+    {
+    	headSlot = windowLengthInSlots - 1;
+    }
   }
 
   private int slotAfter(int slot) {
