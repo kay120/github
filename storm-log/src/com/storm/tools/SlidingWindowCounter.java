@@ -18,6 +18,8 @@
 package com.storm.tools;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.storm.util.LogValue;
@@ -100,21 +102,37 @@ public final class SlidingWindowCounter implements Serializable {
    * objects within the next "chunk" of the sliding window.
    *
    * @return The current (total) counts of all tracked objects.
+ * @throws Exception 
    */
   // 定时器到后 数组 headSlot 向前移动
-  public void getCountsThenAdvanceWindow() {
+  public HashMap<String,List<LogValue>> getCountsThenAdvanceWindow()  {
 //    Map<T, Long> counts = objCounter.getCounts();// 获取所有key在各个slot的总数
 //    objCounter.wipeZeros();// 删掉统计数为0的项
 //    objCounter.wipeSlot(tailSlot);// 把tail指向的slot清0
     advanceHead();// head和tail后移
 //    return counts;// return 一开始获取的slot总数    
     //当 list 满时 清楚 0
+    HashMap<String, List<LogValue>> result = new HashMap<String, List<LogValue>>();
+    result = objCounter.GetIPMaps();
     objCounter.PopList();
+    return result;
   }
 
   public void printlnListIPMapListValue(){
 	  objCounter.printListMapListLogValue();
   }
+  
+  public void printlnIPMapListValue(HashMap<String, List<LogValue>> result){
+	  System.err.println(this.getClass().getName());
+	  for(String key : result.keySet()){
+		  System.err.println("===>IP: " + key);
+		  List<LogValue> ipValue = result.get(key);
+		  for(int i =0 ;i < ipValue.size(); i ++){
+			  System.err.println("=========> " + ipValue.get(i).getTime() + " " + ipValue.get(i).getServlet());
+		  }
+	  }
+  }
+  
   private void advanceHead() {
 //    headSlot = tailSlot;
 //    tailSlot = slotAfter(tailSlot);

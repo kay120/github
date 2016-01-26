@@ -86,7 +86,7 @@ public final class SlotBasedCounter implements Serializable {
 			  System.err.println("===>IP: " + key);
 			  List<LogValue> ipValue = ipMap.get(key);
 			  for(int j =0 ;j < ipValue.size() ; j++){
-				  System.err.println("=========>ipValue.size():"+ ipValue.size() + " " + ipValue.get(j).getTime() + " " + ipValue.get(j).getServlet());
+				  System.err.println("=========> " + ipValue.get(j).getTime() + " " + ipValue.get(j).getServlet());
 			  }
 		  }
 	  }
@@ -108,6 +108,28 @@ public final class SlotBasedCounter implements Serializable {
 //    }
 //  }
 
+   public HashMap<String, List<LogValue>> GetIPMaps() {
+	   HashMap<String, List<LogValue>> result = new HashMap<String, List<LogValue>>();
+	   
+	   // 返回所有IP的 list副本
+	   for(int i =0 ;i < listMapLogValue.size();i++){
+		   HashMap<String,List<LogValue>> ipMap = listMapLogValue.get(i);
+			  for(String key : ipMap.keySet()){
+//				  System.err.println("===>IP: " + key);
+				  List<LogValue> ipValue = ipMap.get(key);
+				  List<LogValue> resultList = result.get(key);
+				  if(resultList == null){
+					  resultList = new ArrayList<LogValue>();
+				  }
+				  for(int j =0 ;j < ipValue.size() ; j++){
+//					  System.err.println("=========>ipValue.size():"+ ipValue.size() + " " + ipValue.get(j).getTime() + " " + ipValue.get(j).getServlet());
+					  resultList.add(new LogValue(ipValue.get(j).getTime(),ipValue.get(j).getServlet()));					  
+				  }
+				  result.put(key, resultList);
+			  }
+	   }
+	   return result;
+   }
   // 获取所有项在所有slot值的和
 //  public Map<T, Long> getCounts() {
 //    Map<T, Long> result = new HashMap<T, Long>();

@@ -1,6 +1,7 @@
 package com.storm.bolt;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.hbase.client.Put;
@@ -15,10 +16,12 @@ import com.storm.util.LogValue;
 import com.storm.util.TupleHelpers;
 
 import backtype.storm.Config;
+import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseBasicBolt;
+import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
@@ -43,6 +46,7 @@ public class RollingCountBolt extends BaseBasicBolt {
 	private long endTime = 0L;
 	private boolean firstTime = true;
 	
+	
 	public RollingCountBolt() {
 		    this(DEFAULT_SLIDING_WINDOW_IN_SECONDS, DEFAULT_EMIT_FREQUENCY_IN_SECONDS);
 		  }
@@ -64,7 +68,8 @@ public class RollingCountBolt extends BaseBasicBolt {
 	String servlet = "";
 	
 	@Override
-	public void prepare(Map stormConf, TopologyContext context) {		
+	public void prepare(Map stormConf, TopologyContext context) {	
+		
 		countsMap = new HashMap<String, Integer>();//		
 		lastModifiedTracker = new NthLastModifiedTimeTracker(deriveNumWindowChunksFrom(this.windowLengthInSeconds,
 		        this.emitFrequencyInSeconds));
@@ -82,7 +87,7 @@ public class RollingCountBolt extends BaseBasicBolt {
 		    System.err.println("RollingCountBolt 定时定时定时定时定时定时定时定时定时定时actualWindowLengthInSeconds: " + actualWindowLengthInSeconds);
 //			System.err.println("RollingCountBolt 定时");
 //			LOG.debug("Received tick tuple, triggering emit of current window counts");
-			emitCurrentWindowCounts();
+			emitCurrentWindowCounts(collector);
 		}else{
 			if(firstTime)
 			{
@@ -108,7 +113,7 @@ public class RollingCountBolt extends BaseBasicBolt {
 			countsMap.put(accessip_serverip + "_" + date + " " + time, count);
 			System.err.println("RollingcountBolt [time " + System.currentTimeMillis() + "]: " + num++ + "--->" +accessip_serverip+"_"+date + " " + time + ", "+ servlet + "=" + count);
 			LogValue logValue = new LogValue();
-			logValue.setTime(time);
+			logValue.setTime(date + " " + time);
 			logValue.setServlet(servlet);
 			ipListMap.incrementCount(accessip_serverip, logValue);
 //			collector.emit(new Values(accessip_serverip, date, time, servlet ,count));
@@ -116,11 +121,15 @@ public class RollingCountBolt extends BaseBasicBolt {
 		}
 	}
 		
-	  private void emitCurrentWindowCounts() {
+	  private void emitCurrentWindowCounts(BasicOutputCollector collector) {
 		  ipListMap.printlnListIPMapListValue();
-		  ipListMap.getCountsThenAdvanceWindow();
 		  
+		  //获取所有的Map  IP list
+		  HashMap<String, List<LogValue>> result = ipListMap.getCountsThenAdvanceWindow();
 		  
+		  ipListMap.printlnIPMapListValue(result);
+		  
+//		  ipListMap.printlnListIPMapListValue();
 //		    int actualWindowLengthInSeconds = lastModifiedTracker.secondsSinceOldestModification();
 //		    lastModifiedTracker.markAsModified();
 //		    if (actualWindowLengthInSeconds != windowLengthInSeconds) {
@@ -128,11 +137,11 @@ public class RollingCountBolt extends BaseBasicBolt {
 //		    }
 //		    emit(counts, actualWindowLengthInSeconds);
 //		    emit(counts);
+		    collector.emit(new Values(result));
 	  }
 	  
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
-		// TODO Auto-generated method stub
-		
+		declarer.declare(new Fields("IPMap"));
 	}
 	
 	@Override
