@@ -1,6 +1,8 @@
 package com.storm;
 
-import org.apache.log4j.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import storm.kafka.BrokerHosts;
 import storm.kafka.KafkaSpout;
@@ -10,19 +12,19 @@ import backtype.storm.Config;
 import backtype.storm.spout.SchemeAsMultiScheme;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
-
 import com.storm.ProcessLogTopology;
 import com.storm.bolt.RollingCountBolt;
 import com.storm.bolt.SpliterBolt;
 import com.storm.bolt.StatisticBolt;
+import com.storm.bolt.WriterBolt;
 import com.storm.spout.MessageScheme;
 import com.storm.spout.MySout;
 import com.storm.util.StormRunner;
 
 public class ProcessLogTopology {
-	private static final Logger LOG = Logger.getLogger(ProcessLogTopology.class);
+	private static final Logger logger = LoggerFactory.getLogger(ProcessLogTopology.class);
 	private static final int DEFAULT_RUNTIME_IN_SECONDS = 60;
-	
+
 	private final TopologyBuilder builder;
 	private final String topologyName;
 	private final Config topologyConfig;
@@ -42,6 +44,7 @@ public class ProcessLogTopology {
 		String spoutId = "kafkaspout";
 		String spliterId = "spliter";
 		String counterId = "counter";
+		String statisticId = "statistic";
 		String writerId = "writer";
 		String topic = "logkafka";
 		String zkRoot = "/storm";
@@ -50,11 +53,12 @@ public class ProcessLogTopology {
 		spoutConfig.forceFromStart = true;
 		spoutConfig.scheme = new SchemeAsMultiScheme(new MessageScheme());
 //		builder.setSpout(spoutId, new KafkaSpout(spoutConfig));
-		builder.setSpout(spoutId, new MySout(),2);
+		builder.setSpout(spoutId, new MySout(),10);
 		builder.setBolt(spliterId, new SpliterBolt(),1).shuffleGrouping(spoutId);
 		// 时间窗为2分钟， 半分钟发一次
 		builder.setBolt(counterId, new RollingCountBolt(20,5)).fieldsGrouping(spliterId, new Fields("accessip_serverip"));
-		builder.setBolt(writerId, new StatisticBolt()).shuffleGrouping(counterId);		
+		builder.setBolt(statisticId, new StatisticBolt()).shuffleGrouping(counterId);	
+		builder.setBolt(writerId, new WriterBolt()).shuffleGrouping(statisticId);
 	}
 
 	private static Config createTopologyConfiguration() {
@@ -90,15 +94,16 @@ public class ProcessLogTopology {
 			runLocally = false;
 		}
 		
-		LOG.info("Topology name: " + topologyName);
+		logger.info("Topology name: " + topologyName);
 		ProcessLogTopology plt = new ProcessLogTopology(topologyName);
-		if(runLocally){
-			LOG.info("Running in local mode"); //本地模式
+		if(runLocally){			
 			plt.runLocally();
-			System.err.println("local mode");
+			logger.info("========================================");
+			logger.info("Running in local mode"); //本地模式
+			logger.info("========================================");
 		}
 		else{
-		     LOG.info("Running in remote (cluster) mode");
+			logger.info("Running in remote (cluster) mode");
 		     plt.runRemotely();
 		}
 	}	

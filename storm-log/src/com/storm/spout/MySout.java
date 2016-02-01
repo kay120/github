@@ -2,6 +2,9 @@ package com.storm.spout;
 
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.storm.util.GenerateLog;
 
 import backtype.storm.spout.SpoutOutputCollector;
@@ -17,7 +20,7 @@ public class MySout extends BaseRichSpout{
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-
+	private static final Logger logger = LoggerFactory.getLogger(MySout.class);
 	SpoutOutputCollector collector;
 	private GenerateLog gLog = null;
 	String strLog = null;
@@ -26,7 +29,7 @@ public class MySout extends BaseRichSpout{
 	public void nextTuple() {
 		strLog = gLog.Generate();
 		num ++;
-		System.err.println("MySout emit : " + num + "===>" + strLog);
+		logger.debug(num + "===>" + strLog);
 		gLog.Write(strLog);
 		collector.emit(new Values(strLog));
 		try {

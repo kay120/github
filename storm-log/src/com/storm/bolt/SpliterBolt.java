@@ -3,6 +3,9 @@ package com.storm.bolt;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.storm.util.TupleHelpers;
 
 import backtype.storm.Config;
@@ -19,7 +22,7 @@ public class SpliterBolt extends BaseBasicBolt {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-
+	private static final Logger logger = LoggerFactory.getLogger(SpliterBolt.class);
 	String date = "";
 	String time = "";
 	String serverip = "";
@@ -39,7 +42,7 @@ public class SpliterBolt extends BaseBasicBolt {
 			
 			endTime = System.currentTimeMillis();
 			long diffTime = endTime - beginTime;
-			System.err.println("SpliterBolt 定时: " + diffTime + " = " + diffTime/1000);
+			logger.debug("SpliterBolt 定时: " + diffTime + " = " + diffTime/1000);
 			firstTime = true;
 //			LOG.debug("Received tick tuple, triggering emit of current window counts");
 		}else{
@@ -48,9 +51,8 @@ public class SpliterBolt extends BaseBasicBolt {
 				beginTime = System.currentTimeMillis();
 				firstTime = false;
 			}
-			System.err.println("SpliterBolt start");
+			logger.debug("SpliterBolt start");
 			String line = input.getStringByField("msg");
-//			System.err.println("SpliterBolt [" + System.currentTimeMillis() + "] line:" + line );
 			date = "";
 			time = "";
 			serverip = "";
@@ -69,22 +71,13 @@ public class SpliterBolt extends BaseBasicBolt {
 			if( bp1 || bp2)
 			{
 				collector.emit(new Values(date,time,accessip + "_" + serverip ,servlet));
-				System.err.println("splitBolt [time " + + System.currentTimeMillis() + "]: " + num++ + "--->" +accessip + "_" + serverip+"_"+date + " " + time + ", "+ servlet );
+				logger.debug("splitBolt [time " + + System.currentTimeMillis() + "]: " + num++ + "--->" +accessip + "_" + serverip+"_"+date + " " + time + ", "+ servlet);
 			}	
-			System.err.println("SpliterBolt end");
-			
+			logger.debug("SpliterBolt end");
 		}
 	}
 
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
 		declarer.declare(new Fields("date","time","accessip_serverip","servlet"));		
 	}
-
-//	@Override
-//	public Map<String, Object> getComponentConfiguration() {
-//	   Map<String, Object> conf = new HashMap<String, Object>();
-//	   conf.put(Config.TOPOLOGY_TICK_TUPLE_FREQ_SECS, 20);
-//	   return conf;
-//	}
-
 }

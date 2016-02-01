@@ -22,6 +22,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.storm.util.LogValue;
 
 /**
@@ -72,7 +75,7 @@ import com.storm.util.LogValue;
 public final class SlidingWindowCounter implements Serializable {
 
   private static final long serialVersionUID = 1L;
-
+  private static final Logger logger = LoggerFactory.getLogger(SlidingWindowCounter.class);
   private SlotBasedCounter objCounter;
   private int headSlot;
   private int tailSlot;
@@ -123,13 +126,15 @@ public final class SlidingWindowCounter implements Serializable {
   }
   
   public void printlnIPMapListValue(HashMap<String, List<LogValue>> result){
-	  System.err.println(this.getClass().getName());
+//	  System.err.println(this.getClass().getName());
 	  for(String key : result.keySet()){
-		  System.err.println("===>IP: " + key);
+		  logger.info("================================================================================");
+		  logger.info("===>IP: " + key);
 		  List<LogValue> ipValue = result.get(key);
 		  for(int i =0 ;i < ipValue.size(); i ++){
-			  System.err.println("=========> " + ipValue.get(i).getTime() + " " + ipValue.get(i).getServlet());
+			  logger.info("=========> " + ipValue.get(i).getTime() + " " + ipValue.get(i).getServlet());
 		  }
+		  logger.info("================================================================================");
 	  }
   }
   

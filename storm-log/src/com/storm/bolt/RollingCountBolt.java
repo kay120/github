@@ -6,7 +6,8 @@ import java.util.Map;
 
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.storm.tools.NthLastModifiedTimeTracker;
 
@@ -31,7 +32,7 @@ public class RollingCountBolt extends BaseBasicBolt {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private static final Logger LOG = Logger.getLogger(RollingCountBolt.class);
+	private static final Logger logger = LoggerFactory.getLogger(RollingCountBolt.class);
 	private static final int NUM_WINDOW_CHUNKS = 5;
 	private static final int DEFAULT_SLIDING_WINDOW_IN_SECONDS = NUM_WINDOW_CHUNKS * 60;
 	private static final int DEFAULT_EMIT_FREQUENCY_IN_SECONDS = DEFAULT_SLIDING_WINDOW_IN_SECONDS / NUM_WINDOW_CHUNKS;
@@ -80,13 +81,11 @@ public class RollingCountBolt extends BaseBasicBolt {
 			
 			endTime = System.currentTimeMillis();
 			long diffTime = endTime - beginTime;
-			System.err.println("RollingCountBolt 定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时: " + diffTime + " = " + diffTime/1000);
+			logger.debug("定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时: " + diffTime + " = " + diffTime/1000);
 			firstTime = true;
 			int actualWindowLengthInSeconds = lastModifiedTracker.secondsSinceOldestModification();
 		    lastModifiedTracker.markAsModified();
-		    System.err.println("RollingCountBolt 定时定时定时定时定时定时定时定时定时定时actualWindowLengthInSeconds: " + actualWindowLengthInSeconds);
-//			System.err.println("RollingCountBolt 定时");
-//			LOG.debug("Received tick tuple, triggering emit of current window counts");
+		    logger.debug("定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时: " + diffTime + " = " + diffTime/1000);
 			emitCurrentWindowCounts(collector);
 		}else{
 			if(firstTime)
@@ -94,7 +93,7 @@ public class RollingCountBolt extends BaseBasicBolt {
 				beginTime = System.currentTimeMillis();
 				firstTime = false;
 			}
-			System.err.println("RollingCountBolt start");
+			logger.debug("RollingCountBolt start");
 			date = input.getStringByField("date");
 			time = input.getStringByField("time");
 			accessip_serverip = input.getStringByField("accessip_serverip");
@@ -111,13 +110,12 @@ public class RollingCountBolt extends BaseBasicBolt {
 			}
 			count ++;
 			countsMap.put(accessip_serverip + "_" + date + " " + time, count);
-			System.err.println("RollingcountBolt [time " + System.currentTimeMillis() + "]: " + num++ + "--->" +accessip_serverip+"_"+date + " " + time + ", "+ servlet + "=" + count);
+			logger.debug("RollingcountBolt [time " + System.currentTimeMillis() + "]: " + num++ + "--->" +accessip_serverip+"_"+date + " " + time + ", "+ servlet + "=" + count);
 			LogValue logValue = new LogValue();
 			logValue.setTime(date + " " + time);
 			logValue.setServlet(servlet);
 			ipListMap.incrementCount(accessip_serverip, logValue);
-//			collector.emit(new Values(accessip_serverip, date, time, servlet ,count));
-			System.err.println("RollingCountBolt end");
+			logger.debug("RollingCountBolt end");
 		}
 	}
 		
@@ -128,16 +126,7 @@ public class RollingCountBolt extends BaseBasicBolt {
 		  HashMap<String, List<LogValue>> result = ipListMap.getCountsThenAdvanceWindow();
 		  
 		  ipListMap.printlnIPMapListValue(result);
-		  
-//		  ipListMap.printlnListIPMapListValue();
-//		    int actualWindowLengthInSeconds = lastModifiedTracker.secondsSinceOldestModification();
-//		    lastModifiedTracker.markAsModified();
-//		    if (actualWindowLengthInSeconds != windowLengthInSeconds) {
-//		      LOG.warn(String.format(WINDOW_LENGTH_WARNING_TEMPLATE, actualWindowLengthInSeconds, windowLengthInSeconds));
-//		    }
-//		    emit(counts, actualWindowLengthInSeconds);
-//		    emit(counts);
-		    collector.emit(new Values(result));
+		  collector.emit(new Values(result));
 	  }
 	  
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
