@@ -91,8 +91,9 @@ public class StatisticBolt extends BaseBasicBolt {
 				logger.info(" C1  = 0  C1 = " + C1 + " elapsedMinute:" + elapsedMinute);
 				continue;
 			}else{
+				logger.info("C1 per minute :{} C2/C1: {}" ,(C1 / elapsedMinute),(C2*1.0)/ C1);
 				if( (C1 / elapsedMinute) > thredholdLoginTimes && ( ((C2*1.0)/ C1 ) < threadholdSuccessRate)){
-					logger.debug("C1 per minute :{} C2/C1: {}" ,(C1 / elapsedMinute),(C2*1.0)/ C1);
+					logger.info("C1 per minute :{} C2/C1: {}" ,(C1 / elapsedMinute),(C2*1.0)/ C1);
 					outIPInfo = outIPInfo + ";" + key + "\t" + 
 												firstTime + "\t" + 
 												endTime + "\t" 											
@@ -103,7 +104,7 @@ public class StatisticBolt extends BaseBasicBolt {
 			}
 		}	
 		logger.info("========================================================");
-		logger.info("return outIPInfo" + outIPInfo);
+		logger.info("return outIPInfo:" + outIPInfo);
 		logger.info("========================================================");
 //		logger.info("=====================================================");
 		return outIPInfo;

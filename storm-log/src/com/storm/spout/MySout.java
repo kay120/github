@@ -35,7 +35,7 @@ public class MySout extends BaseRichSpout{
 		try {
 			long wait = (long)(Math.random()* 2) + 1;
 //			System.err.println(wait);
-			Thread.sleep( wait * 500 );
+			Thread.sleep( wait * 1000 );
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
