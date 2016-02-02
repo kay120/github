@@ -3,3 +3,7 @@
 *.class
 *.log*
 *.dll
+storm-log/log/generatelog.txt
+storm-log/log/stormlog.log
+storm-log/log/stormlog.log.1
+storm-log/log/stormlog.log.2
