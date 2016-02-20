@@ -13,7 +13,7 @@ import com.storm.tools.NthLastModifiedTimeTracker;
 
 import com.storm.tools.SlidingWindowCounter;
 
-import com.storm.util.LogValue;
+import com.storm.util.IPCount;
 import com.storm.util.TupleHelpers;
 
 import backtype.storm.Config;
@@ -38,15 +38,12 @@ public class RollingCountBolt extends BaseBasicBolt {
 	private static final int DEFAULT_EMIT_FREQUENCY_IN_SECONDS = DEFAULT_SLIDING_WINDOW_IN_SECONDS / NUM_WINDOW_CHUNKS;
 	private final int windowLengthInSeconds;
 	private final int emitFrequencyInSeconds;
-	Map<String, Integer> countsMap = null;
+	private IPCount ipCount ;
+	Map<String, IPCount> countsMap = null;
 	private int num = 1;
-	private final SlidingWindowCounter ipListMap;
-	  private NthLastModifiedTimeTracker lastModifiedTracker;
+	private NthLastModifiedTimeTracker lastModifiedTracker;
+	private String matchCode = "403|404";
 	//默认 emit 1分钟 时间窗5分钟
-	private long beginTime = System.currentTimeMillis();
-	private long endTime = 0L;
-	private boolean firstTime = true;
-	
 	
 	public RollingCountBolt() {
 		    this(DEFAULT_SLIDING_WINDOW_IN_SECONDS, DEFAULT_EMIT_FREQUENCY_IN_SECONDS);
@@ -55,8 +52,6 @@ public class RollingCountBolt extends BaseBasicBolt {
 	public RollingCountBolt(int windowLengthInSeconds, int emitFrequencyInSeconds) {
 	    this.windowLengthInSeconds = windowLengthInSeconds;
 	    this.emitFrequencyInSeconds = emitFrequencyInSeconds;		
-	    ipListMap = new SlidingWindowCounter(deriveNumWindowChunksFrom(this.windowLengthInSeconds,
-	            this.emitFrequencyInSeconds));
 	}
 	
 	private int deriveNumWindowChunksFrom(int windowLengthInSeconds, int windowUpdateFrequencyInSeconds) {
@@ -66,71 +61,110 @@ public class RollingCountBolt extends BaseBasicBolt {
 	String date = "";
 	String time = "";
 	String accessip_serverip = "";
-	String servlet = "";
+	String url = "";
+	String returnCode = "";
 	
 	@Override
-	public void prepare(Map stormConf, TopologyContext context) {	
-		
-		countsMap = new HashMap<String, Integer>();//		
+	public void prepare(Map stormConf, TopologyContext context) {		
+		countsMap = new HashMap<String, IPCount>();//		
 		lastModifiedTracker = new NthLastModifiedTimeTracker(deriveNumWindowChunksFrom(this.windowLengthInSeconds,
 		        this.emitFrequencyInSeconds));
 	}
 	
+	int ipcount = 0;
+	int returncodecount = 0;
+	
 	public void execute(Tuple input, BasicOutputCollector collector) {
 		if(TupleHelpers.isTickTuple(input)){
-			
-			endTime = System.currentTimeMillis();
-			long diffTime = endTime - beginTime;
-			logger.debug("定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时: " + diffTime + " = " + diffTime/1000);
-			firstTime = true;
+			logger.info("定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时: ");
 			int actualWindowLengthInSeconds = lastModifiedTracker.secondsSinceOldestModification();
 		    lastModifiedTracker.markAsModified();
-		    logger.debug("定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时定时: " + diffTime + " = " + diffTime/1000);
+//		    logger.info("===========================before copy======================");
+//		    printlnIPMapListValue(countsMap);
 			emitCurrentWindowCounts(collector);
 		}else{
-			if(firstTime)
-			{
-				beginTime = System.currentTimeMillis();
-				firstTime = false;
-			}
-			logger.debug("RollingCountBolt start");
+			logger.info("==========================RollingCountBolt start===========================");
 			date = input.getStringByField("date");
 			time = input.getStringByField("time");
 			accessip_serverip = input.getStringByField("accessip_serverip");
-			servlet = input.getStringByField("servlet");
-	
-			//1 second access many times
-			int count;
+			url = input.getStringByField("url");
+			returnCode = input.getStringByField("returnCode").trim();			
 			
-			if(countsMap.containsKey(accessip_serverip + "_" + date + " " + time))
-			{
-				count = countsMap.get(accessip_serverip + "_" + date + " " + time);
+			logger.info(date + " " + 
+						time + " " +
+						accessip_serverip + " " + 
+						url + " " + 
+						returnCode);
+			
+			if(countsMap.containsKey(accessip_serverip))
+			{		
+				ipCount = countsMap.get(accessip_serverip);
+				ipcount = ipCount.getIpCounts();
+				returncodecount = ipCount.getReturnCodeCounts();
+				logger.info("====contains================================");
+				logger.info("contains : " + ipcount + " " + returncodecount);
 			}else{
-				count = 0;
+				ipCount = new IPCount( date + " " + time , date + " " + time);
+				ipcount = 0;
+				returncodecount = 0;
 			}
-			count ++;
-			countsMap.put(accessip_serverip + "_" + date + " " + time, count);
-			logger.debug("RollingcountBolt [time " + System.currentTimeMillis() + "]: " + num++ + "--->" +accessip_serverip+"_"+date + " " + time + ", "+ servlet + "=" + count);
-			LogValue logValue = new LogValue();
-			logValue.setTime(date + " " + time);
-			logValue.setServlet(servlet);
-			ipListMap.incrementCount(accessip_serverip, logValue);
-			logger.debug("RollingCountBolt end");
+			ipcount ++;
+			
+			if(returnCode.matches(matchCode)){
+				returncodecount++ ;
+				ipCount.AddUrl(url);
+			}
+			
+			ipCount.SetValue(date + " " + time , ipcount , returncodecount);
+			countsMap.put(accessip_serverip , ipCount);
+			logger.info("=======================  RollingCountBolt  print============================================");
+			logger.info( num++ + "----------->" +
+						 accessip_serverip +
+						 " "+date + " " + time + 
+						 ", " + returnCode + 
+						 ", " + url + 
+						 ", ipcount :" + ipcount +
+						 ", returncodecount" + returncodecount);
+			
+			logger.info("ipCount info :" + accessip_serverip  +
+						 " begin:" + ipCount.getBeginTime() + 
+						 " end:" + ipCount.getEndTime() + 
+						 " ipcount:" + ipCount.getIpCounts() +
+						 " returncodecount:" + ipCount.getReturnCodeCounts() +
+						 " url:" + ipCount.getUrl());
+			logger.info("RollingCountBolt end");
+			logger.info("=======================  RollingCountBolt print end========================================");
 		}
 	}
 		
-	  private void emitCurrentWindowCounts(BasicOutputCollector collector) {
-		  ipListMap.printlnListIPMapListValue();
-		  
-		  //获取所有的Map  IP list
-		  HashMap<String, List<LogValue>> result = ipListMap.getCountsThenAdvanceWindow();
-		  
-		  ipListMap.printlnIPMapListValue(result);
-		  collector.emit(new Values(result));
+	private void emitCurrentWindowCounts(BasicOutputCollector collector) {
+		
+		Map<String, IPCount> countsMapCopy = new HashMap<String, IPCount>();
+		
+		for(String ip: countsMap.keySet()){
+			IPCount ipCountcopy = new IPCount();
+			ipCountcopy.Copy(countsMap.get(ip));
+			countsMapCopy.put(ip, ipCountcopy);
+		}
+		collector.emit(new Values(countsMapCopy));
+		countsMap.clear();
+//		logger.info("=========================countsMapCopy===================");
+//		printlnIPMapListValue(countsMapCopy);
+//		logger.info("=========================countsMap===================");
+//		printlnIPMapListValue(countsMap);
 	  }
 	  
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
-		declarer.declare(new Fields("IPMap"));
+		declarer.declare(new Fields("IPcountsMap"));
+	}
+	
+	public void printlnIPMapListValue(Map<String, IPCount> result){
+		for(String ip: result.keySet()){
+			logger.info("==========>" + ip);
+			logger.info("#####  beginTime:" + result.get(ip).getBeginTime() + "          endTime:" + result.get(ip).getEndTime());
+			logger.info("#####   ipCounts:" + result.get(ip).getIpCounts() +  " returnCodeCounts:" + result.get(ip).getReturnCodeCounts());
+			logger.info("#####  403/4 url:" + result.get(ip).getUrl());
+		}
 	}
 	
 	@Override

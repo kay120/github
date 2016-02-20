@@ -18,13 +18,29 @@ public class GenerateLog {
 		"192.168.1.5",
 		};
 	private static final String[] servlets = new String[]{
-		"/servlet/com.icbc.inbs.servlet.ICBCINBSEstablishSessionServlet",
-		"/servlet/AsynGetDataServlet",
+		//"/servlet/com.icbc.inbs.servlet.ICBCINBSEstablishSessionServlet",
+		//"/servlet/AsynGetDataServlet",
 		"a/servlet",
 		"b/servlet",
 		"c/servlet",
 		"d/servlet"
 	};
+	
+	private static final String[] https = new String[]{
+		"http://1.html",
+		"http://2.html",
+		"http://3.html",
+		"http://4.html",
+		"http://5.html",
+		"http://6.html",
+		"http://7.html",
+		"http://8.html",
+		"http://9.html",
+		"http://10.html"
+	};
+	
+	private static final String[] returnCode = new String[]{
+		"304","303","200","500","404","403"	};
 	private static final String serverip = "10.1.1.1";
 	//2015-08-23	11:00:00	pdccbeb.site1	10.1.1.1	GET	/icbc/new/servlet1	-	-	20.23.23.3	http://absfpasswd.html	Mozilla	304	304	-	0
     String output ;
@@ -46,6 +62,7 @@ public class GenerateLog {
 	public String Generate(){
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
 		String currentTime = df.format(new Date());// new Date()为获取当前系统时间
+		String returnCodeStr = returnCode[random.nextInt(returnCode.length)];
 		output = currentTime.split(" ")[0] + "\t"+
 				currentTime.split(" ")[1] +  "\t" + 
 				"pdccbeb.site1" + "\t" +
@@ -55,8 +72,13 @@ public class GenerateLog {
 				"-" + "\t" +
 				"-" + "\t" +
 				ips[random.nextInt(ips.length)] + "\t" + 
-				"http://absfpasswd.html	Mozilla	304	304	-	0";
-				;
+				https[random.nextInt(https.length)] +  "\t" +
+				"Mozilla" + "\t" +
+				returnCodeStr + "\t" +
+				returnCodeStr + "\t" +
+				"-" + "\t" +
+				"0";
+				
 		return output;
 	}
 	public void Write(String s){

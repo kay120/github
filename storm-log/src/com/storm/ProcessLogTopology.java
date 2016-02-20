@@ -53,10 +53,10 @@ public class ProcessLogTopology {
 		spoutConfig.forceFromStart = true;
 		spoutConfig.scheme = new SchemeAsMultiScheme(new MessageScheme());
 //		builder.setSpout(spoutId, new KafkaSpout(spoutConfig));
-		builder.setSpout(spoutId, new MySout(),20);
+		builder.setSpout(spoutId, new MySout(),2);
 		builder.setBolt(spliterId, new SpliterBolt(),1).shuffleGrouping(spoutId);
 		// 时间窗为2分钟， 半分钟发一次
-		builder.setBolt(counterId, new RollingCountBolt(20,5)).fieldsGrouping(spliterId, new Fields("accessip_serverip"));
+		builder.setBolt(counterId, new RollingCountBolt(20,10)).fieldsGrouping(spliterId, new Fields("accessip_serverip"));
 		builder.setBolt(statisticId, new StatisticBolt()).shuffleGrouping(counterId);	
 		builder.setBolt(writerId, new WriterBolt()).shuffleGrouping(statisticId);
 	}
